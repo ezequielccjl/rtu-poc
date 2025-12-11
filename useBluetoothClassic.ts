@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { PermissionsAndroid, Platform } from 'react-native';
 import RNBluetoothClassic, {
   BluetoothDevice,
   BluetoothEventSubscription,
@@ -31,6 +32,7 @@ interface BluetoothState {
   error: string | null;
   isConnected: boolean;
   mp4Device: BluetoothDevice | null;
+  permissionsGranted: boolean;
 }
 
 /**
@@ -69,6 +71,74 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [mp4Device, setMp4Device] = useState<BluetoothDevice | null>(null);
+  const [permissionsGranted, setPermissionsGranted] = useState<boolean>(false);
+
+  /**
+   * Solicitar permisos de Bluetooth para Android 12+
+   */
+  const requestBluetoothPermissions =
+    useCallback(async (): Promise<boolean> => {
+      if (Platform.OS !== 'android') {
+        return true;
+      }
+
+      try {
+        const apiLevel = Platform.Version;
+
+        if (apiLevel < 31) {
+          // Android 11 o menor - solo necesita ACCESS_FINE_LOCATION
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Permiso de Ubicación',
+              message:
+                'La app necesita acceso a la ubicación para escanear dispositivos Bluetooth.',
+              buttonNeutral: 'Preguntar después',
+              buttonNegative: 'Cancelar',
+              buttonPositive: 'Aceptar',
+            },
+          );
+          const isGranted = granted === PermissionsAndroid.RESULTS.GRANTED;
+          setPermissionsGranted(isGranted);
+          return isGranted;
+        }
+
+        // Android 12+ (API 31+) - necesita permisos específicos de Bluetooth
+        const permissions = [
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        ];
+
+        const granted = await PermissionsAndroid.requestMultiple(permissions);
+
+        const allGranted =
+          granted['android.permission.BLUETOOTH_SCAN'] ===
+            PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.BLUETOOTH_CONNECT'] ===
+            PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.ACCESS_FINE_LOCATION'] ===
+            PermissionsAndroid.RESULTS.GRANTED;
+
+        setPermissionsGranted(allGranted);
+
+        if (!allGranted) {
+          setError('Se requieren permisos de Bluetooth para continuar');
+        }
+
+        return allGranted;
+      } catch (err) {
+        console.error('Error requesting permissions:', err);
+        setPermissionsGranted(false);
+        setError('Error al solicitar permisos');
+        return false;
+      }
+    }, []);
+
+  // Solicitar permisos automáticamente al montar el componente
+  useEffect(() => {
+    requestBluetoothPermissions();
+  }, [requestBluetoothPermissions]);
 
   // Listener para datos recibidos
   useEffect(() => {
@@ -100,6 +170,16 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
   const pairDevice = useCallback(
     async (device: BluetoothDevice): Promise<BluetoothDevice> => {
       try {
+        // Verificar permisos antes de emparejar
+        if (!permissionsGranted) {
+          const granted = await requestBluetoothPermissions();
+          if (!granted) {
+            throw new Error(
+              'Se requieren permisos de Bluetooth para emparejar',
+            );
+          }
+        }
+
         setIsPairing(true);
         setError(null);
 
@@ -118,7 +198,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
         setIsPairing(false);
       }
     },
-    [addMessage],
+    [addMessage, permissionsGranted, requestBluetoothPermissions],
   );
 
   /**
@@ -128,6 +208,16 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     BluetoothDevice | undefined
   > => {
     try {
+      // Verificar permisos primero
+      if (!permissionsGranted) {
+        const granted = await requestBluetoothPermissions();
+        if (!granted) {
+          throw new Error(
+            'Se requieren permisos de Bluetooth para buscar dispositivos',
+          );
+        }
+      }
+
       setIsScanning(true);
       setError(null);
 
@@ -183,7 +273,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
       setIsScanning(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addMessage, pairDevice]);
+  }, [addMessage, pairDevice, permissionsGranted, requestBluetoothPermissions]);
 
   /**
    * Cargar dispositivos emparejados
@@ -192,6 +282,14 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     BluetoothDevice[]
   > => {
     try {
+      // Verificar permisos
+      if (!permissionsGranted) {
+        const granted = await requestBluetoothPermissions();
+        if (!granted) {
+          throw new Error('Se requieren permisos de Bluetooth');
+        }
+      }
+
       setIsScanning(true);
       setError(null);
       const paired = await RNBluetoothClassic.getBondedDevices();
@@ -206,13 +304,21 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     } finally {
       setIsScanning(false);
     }
-  }, []);
+  }, [permissionsGranted, requestBluetoothPermissions]);
 
   /**
    * Descubrir dispositivos cercanos
    */
   const discoverDevices = useCallback(async (): Promise<BluetoothDevice[]> => {
     try {
+      // Verificar permisos
+      if (!permissionsGranted) {
+        const granted = await requestBluetoothPermissions();
+        if (!granted) {
+          throw new Error('Se requieren permisos de Bluetooth');
+        }
+      }
+
       setIsScanning(true);
       setError(null);
 
@@ -233,7 +339,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     } finally {
       setIsScanning(false);
     }
-  }, []);
+  }, [permissionsGranted, requestBluetoothPermissions]);
 
   /**
    * Conectar a un dispositivo específico
@@ -241,6 +347,14 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
   const connectToDevice = useCallback(
     async (device: BluetoothDevice): Promise<BluetoothDevice> => {
       try {
+        // Verificar permisos
+        if (!permissionsGranted) {
+          const granted = await requestBluetoothPermissions();
+          if (!granted) {
+            throw new Error('Se requieren permisos de Bluetooth para conectar');
+          }
+        }
+
         setIsConnecting(true);
         setError(null);
 
@@ -267,7 +381,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
         setIsConnecting(false);
       }
     },
-    [addMessage],
+    [addMessage, permissionsGranted, requestBluetoothPermissions],
   );
 
   /**
@@ -358,6 +472,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     error,
     isConnected: !!connectedDevice,
     mp4Device,
+    permissionsGranted,
 
     // Métodos
     loadPairedDevices,
