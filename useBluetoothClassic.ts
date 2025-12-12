@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import RNBluetoothClassic, {
   BluetoothDevice,
@@ -23,7 +23,6 @@ interface Message {
  * Interface para el estado del hook
  */
 interface BluetoothState {
-  devices: BluetoothDevice[];
   connectedDevice: BluetoothDevice | null;
   isScanning: boolean;
   isConnecting: boolean;
@@ -39,14 +38,10 @@ interface BluetoothState {
  * Interface para los métodos del hook
  */
 interface BluetoothMethods {
-  loadPairedDevices: () => Promise<BluetoothDevice[]>;
-  discoverDevices: () => Promise<BluetoothDevice[]>;
   connectToDevice: (device: BluetoothDevice) => Promise<BluetoothDevice>;
   disconnect: () => Promise<void>;
   sendData: (data: string) => Promise<boolean>;
   clearMessages: () => void;
-  checkBluetoothEnabled: () => Promise<boolean>;
-  requestEnableBluetooth: () => Promise<boolean>;
   pairDevice: (device: BluetoothDevice) => Promise<BluetoothDevice>;
   findAndConnectMP4: () => Promise<BluetoothDevice | undefined>;
 }
@@ -62,7 +57,6 @@ type UseBluetoothClassicReturn = BluetoothState & BluetoothMethods;
  * @returns {UseBluetoothClassicReturn} Estado y métodos para manejar Bluetooth
  */
 const useBluetoothClassic = (): UseBluetoothClassicReturn => {
-  const [devices, setDevices] = useState<BluetoothDevice[]>([]);
   const [connectedDevice, setConnectedDevice] =
     useState<BluetoothDevice | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -223,6 +217,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
 
       // Primero buscar en dispositivos emparejados
       const paired = await RNBluetoothClassic.getBondedDevices();
+      console.log({ paired });
       let mp4 = paired.find(
         (device: BluetoothDevice) =>
           device.name && device.name.startsWith('MP4'),
@@ -237,6 +232,7 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
 
       // Si no está emparejado, buscar en dispositivos disponibles
       const enabled = await RNBluetoothClassic.requestBluetoothEnabled();
+      console.log({ enabled });
       if (!enabled) {
         throw new Error('Bluetooth no está habilitado');
       }
@@ -274,72 +270,6 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addMessage, pairDevice, permissionsGranted, requestBluetoothPermissions]);
-
-  /**
-   * Cargar dispositivos emparejados
-   */
-  const loadPairedDevices = useCallback(async (): Promise<
-    BluetoothDevice[]
-  > => {
-    try {
-      // Verificar permisos
-      if (!permissionsGranted) {
-        const granted = await requestBluetoothPermissions();
-        if (!granted) {
-          throw new Error('Se requieren permisos de Bluetooth');
-        }
-      }
-
-      setIsScanning(true);
-      setError(null);
-      const paired = await RNBluetoothClassic.getBondedDevices();
-      setDevices(paired);
-      return paired;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error al cargar dispositivos';
-      setError(errorMessage);
-      console.error('Error loading paired devices:', err);
-      return [];
-    } finally {
-      setIsScanning(false);
-    }
-  }, [permissionsGranted, requestBluetoothPermissions]);
-
-  /**
-   * Descubrir dispositivos cercanos
-   */
-  const discoverDevices = useCallback(async (): Promise<BluetoothDevice[]> => {
-    try {
-      // Verificar permisos
-      if (!permissionsGranted) {
-        const granted = await requestBluetoothPermissions();
-        if (!granted) {
-          throw new Error('Se requieren permisos de Bluetooth');
-        }
-      }
-
-      setIsScanning(true);
-      setError(null);
-
-      const enabled = await RNBluetoothClassic.requestBluetoothEnabled();
-      if (!enabled) {
-        throw new Error('Bluetooth no está habilitado');
-      }
-
-      const discovered = await RNBluetoothClassic.startDiscovery();
-      setDevices(discovered);
-      return discovered;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error al descubrir dispositivos';
-      setError(errorMessage);
-      console.error('Error discovering devices:', err);
-      return [];
-    } finally {
-      setIsScanning(false);
-    }
-  }, [permissionsGranted, requestBluetoothPermissions]);
 
   /**
    * Conectar a un dispositivo específico
@@ -435,35 +365,8 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     setMessages([]);
   }, []);
 
-  /**
-   * Verificar si Bluetooth está habilitado
-   */
-  const checkBluetoothEnabled = useCallback(async (): Promise<boolean> => {
-    try {
-      const enabled = await RNBluetoothClassic.isBluetoothEnabled();
-      return enabled;
-    } catch (err) {
-      console.error('Error checking Bluetooth status:', err);
-      return false;
-    }
-  }, []);
-
-  /**
-   * Solicitar habilitar Bluetooth
-   */
-  const requestEnableBluetooth = useCallback(async (): Promise<boolean> => {
-    try {
-      const enabled = await RNBluetoothClassic.requestBluetoothEnabled();
-      return enabled;
-    } catch (err) {
-      console.error('Error requesting Bluetooth enable:', err);
-      return false;
-    }
-  }, []);
-
   return {
     // Estado
-    devices,
     connectedDevice,
     isScanning,
     isConnecting,
@@ -475,14 +378,10 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
     permissionsGranted,
 
     // Métodos
-    loadPairedDevices,
-    discoverDevices,
     connectToDevice,
     disconnect,
     sendData,
     clearMessages,
-    checkBluetoothEnabled,
-    requestEnableBluetooth,
     pairDevice,
     findAndConnectMP4,
   };
@@ -490,9 +389,9 @@ const useBluetoothClassic = (): UseBluetoothClassicReturn => {
 
 export default useBluetoothClassic;
 export type {
+  BluetoothMethods,
+  BluetoothState,
   Message,
   MessageType,
-  BluetoothState,
-  BluetoothMethods,
   UseBluetoothClassicReturn,
 };

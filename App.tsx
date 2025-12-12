@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  FlatList,
   Alert,
-  TextInput,
+  FlatList,
   KeyboardAvoidingView,
-  Platform,
   ListRenderItem,
+  Platform,
+  SafeAreaView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { styles } from './styles';
 import useBluetoothClassic, { Message } from './useBluetoothClassic';
 
 /**
@@ -20,7 +20,6 @@ import useBluetoothClassic, { Message } from './useBluetoothClassic';
  */
 const AppWithHook: React.FC = () => {
   const {
-    //connectedDevice,
     isScanning,
     isConnecting,
     isPairing,
@@ -245,207 +244,5 @@ const AppWithHook: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#007AFF',
-    padding: 20,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'white',
-    marginTop: 5,
-  },
-  statusSection: {
-    backgroundColor: 'white',
-    margin: 15,
-    padding: 15,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusConnected: {
-    opacity: 1,
-  },
-  statusDisconnected: {
-    opacity: 0.7,
-  },
-  statusDot: {
-    fontSize: 20,
-    marginRight: 8,
-    color: '#34C759',
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  commandSection: {
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    marginBottom: 15,
-    padding: 15,
-    borderRadius: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  commandInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
-  },
-  commandInput: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  messagesSection: {
-    flex: 1,
-    backgroundColor: 'white',
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderRadius: 10,
-    padding: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  button: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonSmall: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  buttonPrimary: {
-    backgroundColor: '#34C759',
-  },
-  buttonDanger: {
-    backgroundColor: '#FF3B30',
-  },
-  buttonSend: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  messageList: {
-    flex: 1,
-  },
-  message: {
-    padding: 10,
-    marginVertical: 4,
-    borderRadius: 8,
-    maxWidth: '80%',
-  },
-  messageReceived: {
-    backgroundColor: '#E8F5E9',
-    alignSelf: 'flex-start',
-  },
-  messageSent: {
-    backgroundColor: '#E3F2FD',
-    alignSelf: 'flex-end',
-  },
-  messageTime: {
-    fontSize: 10,
-    color: '#666',
-    marginBottom: 4,
-  },
-  messageContent: {
-    fontSize: 14,
-    color: '#333',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#999',
-    padding: 20,
-  },
-  loading: {
-    position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  loadingText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  errorContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: '#FFEBEE',
-    padding: 15,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 3,
-  },
-  errorText: {
-    color: '#C62828',
-    fontSize: 14,
-    flex: 1,
-    marginRight: 10,
-  },
-  retryButton: {
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-});
 
 export default AppWithHook;
